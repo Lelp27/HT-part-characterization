@@ -1,0 +1,107 @@
+---
+title: "Fig3. Image Analysis"
+author: "박성군(tjdrns27@kribb.re.kr)"
+date: '2021 9 13 '
+output: html_document
+---
+
+``` {r}
+library(showtext)
+nanum_path = 'C:\\Users\\Lelp\\AppData\\Local\\Microsoft\\Windows\\Fonts\\NanumSquareEB.ttf'
+
+font_paths(nanum_path)
+font_add(family = 'NanumSquare', regular = nanum_path)
+
+
+showtext_auto()
+```
+
+```{r, include=FALSE}
+library(tidyverse)
+library(readxl)
+
+
+outlier <- function (df, value) {
+  iqr <- boxplot(df[value], plot=FALSE)$stats
+  df[which(df[value] >= iqr[5] | df[value] <= iqr[1]), value] = NA
+  return(df[complete.cases(df),])
+}
+```
+
+A. FACS와 Image 분석 결과 값 비교
+
+``` {r}
+path = 'C://workspace//work//colony_scan//victor.xlsx'
+
+# Poster 만든것 참고하여 Shape와 색 등 변경하기.
+df <- read_excel(path, sheet=1)
+f1 <- df %>% ggplot(aes(y=Image, x=FACS)) +
+  geom_point(shape=24, fill='#91f2ef', size=3) +
+  geom_smooth(method="lm", color="#FE5B45", size=1.5) +
+  theme_bw() + theme(axis.text = element_text(size=34, family="NanumSquare"),
+                     axis.title = element_text(size=38, family="NanumSquare"))
+
+f1
+ggsave("C://workspace//work//colony_scan//png//fig2//2_facs.png", f1, width=4.5, height=3)
+#lm(FACS ~ Image, df) %>% summary()
+```
+C. 서로다른 Plate에서도 동일한 값이 유지된다.
+
+## Data
+``` {r}
+path <- "C://workspace//work//colony_scan//Image//210806_PlateVariation"
+
+df <- read_excel(paste0(path, "\\Plate_bias.xlsx"))
+df$Full_Path <- as.character(df$Full_Path)
+
+df$Part <- factor(df$Part, levels=c('P8','P14','P3'))
+
+df$Intensity <- df$Gmean/df$Rmean
+df$Intensity <- df$Intensity/max(df$Intensity)
+
+temp_label = c(P3 ="High", P8 = "Low", P14="Mid")
+
+
+mycolor <- RColorBrewer::brewer.pal(6, 'Reds')
+mycolor2 <- mycolor[seq(2,6,2)]
+
+#mycolor2 <- c(mycolor[3], mycolor[3], mycolor[3])
+```
+
+## Colony size in plate
+``` {r}
+p2 <- df %>% ggplot(aes(x=Area, y=Intensity, color=Part)) +
+  geom_point(size=2, shape=16) + theme_bw() +
+  theme(axis.text = element_text(size=34, family="NanumSquare"),
+        axis.title = element_text(size=38, family="NanumSquare"),
+        legend.position = 'none',
+        legend.text = element_text(size=34, family="NanumSquare"),
+        legend.title = element_text(size=38, family="NanumSquare")) + ylim(c(0,1)) +
+  scale_color_discrete(labels = temp_label) +
+  guides(color = guide_legend(reverse=TRUE)) +
+  ylab("Intensity (RFU)") + xlab("Colony size (px)")
+
+p2
+ggsave("C://workspace//work//colony_scan//png//fig2//2_size.png", p2, width=4.5, height=3)
+```
+
+## Plate Bias
+``` {r}
+p3 <- df %>% ggplot(aes(x=Full_Path, y=Intensity, fill=Part)) +
+  geom_boxplot(alpha=0.7, width=.5, size=0.5, position=position_dodge(width=0.5)) +
+  geom_jitter(width=0.3, alpha=0.2) + 
+  theme_bw() +
+  theme(axis.text.x = element_blank(),
+        axis.text.y = element_text(size=34, family="NanumSquare"),
+        axis.title = element_text(size=38, family="NanumSquare"),
+        axis.title.y = element_text(margin=margin(r=0)),
+        legend.position="none",
+        strip.background = element_rect(fill='white'),
+        strip.text = element_text(size=32, family='NanumSquare')) +
+  facet_grid(.~Part, labeller=labeller(Part = temp_label)) +
+  xlab("Plate") + ylab("Intensity (RFU)")
+
+p3
+
+ggsave("C://workspace//work//colony_scan//png//fig2//2_plate.png", p3, width=5, height=3)
+```

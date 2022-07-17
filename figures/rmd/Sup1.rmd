@@ -1,0 +1,188 @@
+---
+title: "Fig4.Exposure"
+author: "박성군(tjdrns27@kribb.re.kr)"
+date: '2021 9 15 '
+output: html_document
+---
+
+```{r setup, eval=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(readxl)
+library(extrafont)
+library(gridExtra)
+library(mgcv)
+
+outlier <- function(df) {
+  iqr <- boxplot(df, plot=FALSE)$stats
+  which(df > iqr[4] | df < iqr[2])
+}
+```
+
+## Fig4 (A)
+
+``` {r FigA data processing}
+path = "Z:\\09 Lab members\\박성군\\task\\Raw_data\\Image\\210915_Exposure\\"
+
+p3 <- read.csv(paste0(path, "P3\\P3_exposure2.csv"), row.names = 1)
+p9 <- read.csv(paste0(path, "P9\\P9_exposure2.csv"), row.names = 1)
+p14 <- read.csv(paste0(path, "P14\\P14_exposure2.csv"), row.names = 1)
+p3$Part <- "P3"
+p9$Part <- "P9"
+p14$Part <- "P14"
+
+df <- rbind(p3, p9, p14)
+colnames(df)[6] <- "X0.1E"
+
+E_cols <- c("X0.1E", "X0.2E", "X0.3E", "X0.4E", "X0.5E", "X0.6E",
+            "X0.7E", "X0.8E", "X0.9E", "X1.0E", "X2.0E")
+
+df <- df[,c(E_cols, "Part")]
+
+df2 <- df %>% pivot_longer(cols=E_cols, names_to = "Exposure", values_to = "Gmean")
+
+df2 <- df2 %>% group_by(Exposure, Part) %>% 
+  summarise(sd=sd(Gmean), Gmean=mean(Gmean), n=n())
+df2$Exposure <- sub("X","", df2$Exposure)
+df2$Exposure <- sub("E","", df2$Exposure) %>% as.numeric()
+```
+
+
+``` {r FigA graph}
+label=c(P14 = "Low",
+        P3 = "Middle",
+        P9 = "High")
+
+g1 <- df2 %>% ggplot(aes(x=Exposure, y=Gmean, color=Part)) +
+  geom_point(size=0.5) +
+  geom_smooth(method="gam", se=FALSE) +
+  geom_errorbar(aes(ymax=Gmean+sd/2, ymin=Gmean-sd/2), size=1,
+                position=position_dodge(0.9)) +
+  facet_grid(.~Part, labeller=labeller(Part = label)) + 
+  theme_bw(base_size=15,
+           base_family = "NanumSquare ExtraBold") +
+  theme(legend.position = "none",
+        axis.title=element_blank()) + 
+  scale_x_continuous(limits = c(0.1, 2))
+```
+
+``` {r FigA graph2}
+g2 <- df2 %>% subset(Part =="P14") %>% 
+  ggplot(aes(x=Exposure, y=Gmean, color=Part)) +
+  geom_point(size=0.5) +
+  geom_smooth(method="gam", se=FALSE) +
+  geom_errorbar(aes(ymax=Gmean+sd/2, ymin=Gmean-sd/2), size=1,
+                position=position_dodge(0.9)) +
+  facet_grid(.~Part, labeller=labeller(Part = label)) + 
+  theme_bw(base_size=15,
+           base_family = "NanumSquare ExtraBold") +
+  theme(legend.position = "none",
+        axis.title=element_blank())
+
+g3 <- df2 %>% subset(Part =="P3") %>% 
+  ggplot(aes(x=Exposure, y=Gmean)) +
+  geom_point(size=0.5) +
+  geom_smooth(method="gam", se=FALSE, color="#00BA38") +
+  geom_errorbar(aes(ymax=Gmean+sd/2, ymin=Gmean-sd/2), size=1,
+                position=position_dodge(0.9), color="#00BA38") +
+  facet_grid(.~Part, labeller=labeller(Part = label)) + 
+  theme_bw(base_size=15,
+           base_family = "NanumSquare ExtraBold") +
+  theme(legend.position = "none",
+        axis.title=element_blank())
+```
+
+```{r}
+setwd("C:\\users\\user\\desktop")
+g <- grid.arrange(g1, arrangeGrob(g2, g3), ncol=2, widths=c(2,1.5),
+             heights=c(0.5, 0.5))
+#ggsave(g, filename = "Fig4A.png", dpi = 300, type = 'cairo',width = 12, height = 9, units = 'in')
+```
+
+
+## Fig4 (B)
+
+``` {r}
+xlsx_path = "C:\\users\\user\\desktop\\Paper\\Figure\\Exposure_model.xlsx"
+df <- read_xlsx(xlsx_path, sheet=1)
+
+model1 = gam(Gmean~s(X500E), data=df)
+#model1 %>% plot(residuals=TRUE, shade=TRUE, pch=1, shift=coef(model1)[1])
+df$X500 <- predict(model1, df)
+
+df %>% ggplot(aes(x=Gmean, y=X500E)) +
+  geom_point() + geom_smooth(method="gam", color="red") + 
+  theme_bw(base_family="NanumSquare ExtraBold",
+           base_size=15) +
+  xlab("0.1s") + ylab("0.5s")
+
+df_coef <- subset(df, Gmean < 30) %>% lm(formula=X500E~Gmean) %>% coef()
+
+df %>% ggplot(aes(x=Gmean, y=X500E)) +
+  geom_point() + geom_smooth(method="gam", color="red") + 
+  geom_point(aes(x=Gmean, y=X500*df_coef[2] + df_coef[1], color="red")) +
+  geom_smooth(aes(x=Gmean, y=Gmean*df_coef[2] + df_coef[1])) +
+  theme_bw(base_family="NanumSquare ExtraBold",
+           base_size=15) +
+  xlab(expression("mean of GFP"["(a.u./0.1s)"])) +
+  ylab(expression("mean of GFP"["(a.u./0.5s)"])) 
+```
+
+## B Area별 BIas 확인
+``` {r}
+path <- "Z:\\09 Lab members\\박성군\\task\\Raw_data\\Image\\210806_PlateVariation"
+
+p3 <- read.csv(paste0(path, "\\P3_A.csv"))
+p3 <- p3[-outlier(p3["Gmean"]/p3["Rmean"]),]
+p3$Part <- "P3"
+
+p8 <- read.csv(paste0(path, "\\P8_A.csv"))
+p8 <- p8[-outlier(p8["Gmean"]),]
+p8$Part <- "P8"
+
+p14 <- read.csv(paste0(path, "\\P14_A.csv"))
+p14 <- p14[-outlier(p14["Gmean"]),]
+p14$Part <- "P14"
+
+df <- rbind(p3, p8, p14)
+df <- df[complete.cases(df),]
+df$Full_Path <- basename(df$Full_Path)
+
+# xlsx::write.xlsx(df, paste0(path, "\\Plate_bias.xlsx"))
+```
+
+``` {r}
+df <- read_excel(paste0(path, "\\Plate_bias.xlsx"))
+df$Full_Path <- as.character(df$Full_Path)
+df %>% ggplot(aes(x=Area, y=Gmean/Rmean, color=Part)) +
+  geom_point() + theme_bw(base_family = "NanumSquare ExtraBold",
+                          base_size = 15) +
+  ylab("Intensity (a.u.)") +
+  theme(legend.margin = margin(0,0,0,-10))
+```
+
+## Culture 시간에 따른 Bias 확인
+``` {r}
+path <- "Z:\\09 Lab members\\박성군\\task\\Raw_data\\Image\\210821_C2566_P14_40h\\"
+d12 <- read_excel(paste0(path, "12h_index.xlsx"))
+d12 <- d12[-outlier(d12["Intensity"]),]
+d12$Intensity <- d12$Intensity + 0.075
+
+
+d12$Time <- "12h"
+
+
+d15 <- read_excel(paste0(path, "15h_index.xlsx"))
+d15 <- d15[-outlier(d15["Intensity"]),]
+d15$Time <- "15h"
+
+rbind(d12, d15) %>% ggplot(aes(x=Time, y=Intensity)) +
+  geom_boxplot(aes(color=Time), alpha=0.7, width=.5, size=0.5, position=position_dodge(width=0.5)) +
+  geom_jitter(width=0.1, alpha=0.2) + 
+  theme_bw(base_size=15,
+           base_family="NanumSquare ExtraBold") +
+  theme(legend.position="none") + ylab("Intensity (a.u.)") + ylim(c(1,1.3))
+```
+
+

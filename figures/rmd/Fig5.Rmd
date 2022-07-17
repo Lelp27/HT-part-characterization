@@ -1,0 +1,17 @@
+---
+title: "Fig3. Image Analysis"
+author: "박성군(tjdrns27@kribb.re.kr)"
+date: '2021 9 13 '
+output: html_document
+---
+
+``` {r}
+library(showtext)
+nanum_path = 'C:\\Users\\Lelp\\AppData\\Local\\Microsoft\\Windows\\Fonts\\NanumSquareEB.ttf'
+arial_path = 'C:\\Windows\\Fonts\\arial.ttf'
+font_paths(nanum_path)
+font_add(family = 'NanumSquare', regular = nanum_path)
+font_add(family = 'Arial', regular = arial_path)
+
+showtext_auto()
+```

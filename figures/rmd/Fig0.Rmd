@@ -1,0 +1,63 @@
+---
+title: "Fig0. Graphical Abstract"
+author: "박성군(tjdrns27@kribb.re.kr)"
+date: '2021 9 13 '
+output: html_document
+---
+
+``` {r}
+library(showtext)
+nanum_path = 'C:\\Users\\Lelp\\AppData\\Local\\Microsoft\\Windows\\Fonts\\NanumSquareEB.ttf'
+
+font_paths(nanum_path)
+font_add(family = 'NanumSquare', regular = nanum_path)
+
+showtext_auto()
+```
+
+``` {r}
+library(tidyverse)
+
+gfp_path = "C:\\workspace\\work\\colony_scan\\front_image\\GFP.csv"
+
+df_gfp <- read.csv(gfp_path)
+
+df_gfp$Y <- -(df_gfp$Y - max(df_gfp$Y))
+
+df_gfp$Gmean <- df_gfp$Gmean/max(df_gfp$Gmean)
+df_gfp$Gmean <- df_gfp$Gmean*3
+```
+
+``` {r}
+g1 <- df_gfp %>% ggplot(aes(x=X, y=Y)) + geom_point(aes(size=Area, color=Gmean)) +
+  theme_light() +
+  guides(size='none', color = guide_colourbar(ticks=TRUE)) +
+  scale_color_distiller(palette = "Greens", direction=1) +
+  labs(color = "RFU") +
+  theme(legend.position='none',
+        legend.text = element_blank(),
+        legend.title=element_blank(),
+        axis.title=element_blank(),
+        axis.text=element_text(size=34, family='NanumSquare'))
+
+g1
+ggsave("C://workspace//work//colony_scan//png//0_front_image.png", g1, width=4, height=4)
+```
+
+#Original
+``` {r}
+path = "C:\\users\\user\\desktop\\Paper\\front_image.xlsx"
+df <- read_excel(path)
+df <- df[df["N_in_clust"] == 1,]
+df %>% ggplot(aes(x=X, y=Y, color=Gmean*5/Rmean)) +
+  geom_point(aes(size=Area/2), alpha=0.8) + 
+  scale_color_distiller(palette = "YlGn") +
+  coord_fixed(ratio=1) + theme_bw(base_family = "NanumSquare ExtraBold",
+                                  base_size=15) +
+  theme(axis.title=element_blank(),
+        axis.text=element_blank(),
+        legend.title=element_text(size=15),
+        legend.margin =margin(0,0,0,-10)) +
+  guides(size=FALSE) + labs(color="RFU")
+ggsave(filename = "C:\\users\\user\\desktop\\Petridish.png", dpi = 300, type = 'cairo',width = 12, height = 9, units = 'in')
+```

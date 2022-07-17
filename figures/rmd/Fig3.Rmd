@@ -1,0 +1,71 @@
+---
+title: "Fig4. Genotyping"
+author: "박성군(tjdrns27@kribb.re.kr)"
+date: '2021 9 13 '
+output: html_document
+---
+
+``` {r}
+library(showtext)
+nanum_path = 'C:\\Users\\Lelp\\AppData\\Local\\Microsoft\\Windows\\Fonts\\NanumSquareEB.ttf'
+
+font_paths(nanum_path)
+font_add(family = 'NanumSquare', regular = nanum_path)
+
+
+showtext_auto()
+```
+
+## Data Loading
+``` {r}
+library(readxl)
+library(tidyverse)
+
+path = 'C://workspace//work//colony_scan//genotyping.xlsx'
+df <- readxl::read_excel(path, sheet=1)
+df <- df[df['barcode'] == 'barcode09',]
+```
+
+## Tag Count
+``` {r}
+f1 <- df %>% ggplot(aes(y=count, x=tag_rev)) +
+  geom_bar(stat='identity') + facet_grid(~factor(tag_for)) + theme_bw() +
+  theme(axis.text = element_text(size=34, family='NanumSquare'),
+        axis.title = element_text(size=44, family='NanumSquare'),
+        plot.title = element_text(size=44, family='NanumSquare', hjust=0.5),
+        #strip.background = element_rect(fill='white'),
+        strip.text = element_text(size=38, family='NanumSquare')) +
+  labs(title = 'Forward tag', x='Reverse tag', y='count')
+
+f1
+ggsave("C://workspace//work//colony_scan//png//fig3//3_count.png", f1, width=10, height=3)
+```
+
+## Score1
+``` {r}
+df <- readxl::read_excel(path, sheet=1)
+
+f2 <- df %>% ggplot(aes(x=score)) +
+  geom_histogram(alpha=0.8, bins = 75, fill='#FB6A4A') + theme_bw() +
+  geom_vline(xintercept=0.4, linetype='dashed', size=1) +
+  theme(legend.position='none',
+        axis.text = element_text(size=34, family="NanumSquare"),
+        axis.title = element_text(size=44, family='NanumSquare')) +
+  xlim(c(0,1)) + xlab(expression(Score[1]))
+
+f2
+ggsave("C://workspace//work//colony_scan//png//fig3//3_score1.png", f2, width=4.5, height=3)
+```
+## score2
+``` {r}
+f3 <- df %>% ggplot(aes(x=second)) +
+  geom_histogram(alpha=0.8, bins = 75, fill='#6AC0EE') + theme_bw() +
+  geom_vline(xintercept=0.65, linetype='dashed', size=1) +
+  theme(legend.position='none',
+        axis.text = element_text(size=34, family="NanumSquare"),
+        axis.title = element_text(size=44, family='NanumSquare')) +
+  xlim(c(0,1)) + xlab(expression(Score[2]))
+
+f3
+ggsave("C://workspace//work//colony_scan//png//fig3//3_score2.png", f3, width=4.5, height=3)
+```

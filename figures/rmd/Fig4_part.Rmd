@@ -1,0 +1,174 @@
+---
+title: "Fig5. Part"
+author: "박성군(tjdrns27@kribb.re.kr)"
+date: '2021 9 13 '
+output: html_document
+---
+
+``` {r}
+library(showtext)
+library(readxl)
+library(tidyverse)
+nanum_path = 'C:\\Users\\Lelp\\AppData\\Local\\Microsoft\\Windows\\Fonts\\NanumSquareEB.ttf'
+#nanum_path = 'C:\\Users\\User\\AppData\\Local\\Microsoft\\Windows\\Fonts\\NanumSquareEB.ttf'
+
+font_paths(nanum_path)
+font_add(family = 'NanumSquare', regular = nanum_path)
+
+showtext_auto()
+```
+
+## Data Loading
+``` {r}
+path = "C:\\workspace\\work\\colony_scan\\Paper\\Figure\\Promoter\\promoter.xlsx"
+
+df <- readxl::read_excel(path, sheet=1)
+df <- df %>% subset(count>20 & second >.65 & score > .4) %>% 
+  group_by(Part)
+
+Part_name <- function (x, x2) {
+  x = str_split_fixed(x, "_", 3)[,x2]
+}
+
+df["Part"] <- apply(X=df["Part"],
+                    MARGIN = 1,
+                    FUN=function(i){
+                      Part_name(i, 1)
+                    })
+
+
+df[df$Strain == "DH5a",]$Strain <- "DH5α"
+df$Intensity <- df$Gmean*df$Area/df$R_R/df$Rarea
+df <- df %>% subset(Date != 210716)
+
+#Dh5a, BL21, C2566
+standard_rpu <- c(9.54, 6.69, 3.43)
+
+df3 <- df %>% group_by(Part, Strain) %>% 
+  summarise(mean=mean(Intensity), sd=sd(Intensity), n=n()) %>% arrange(mean) 
+
+#df3[df3$Strain == "DH5α",][c("mean", "sd")] <- df3[df3$Strain == "DH5α",][c("mean", "sd")]/9.54
+#df3[df3$Strain == "BL21",][c("mean", "sd")] <- df3[df3$Strain == "BL21",][c("mean", "sd")]/6.69
+#df3[df3$Strain == "C2566",][c("mean", "sd")] <- df3[df3$Strain == "C2566",][c("mean", "sd")]/3.43
+df3$Strain <- factor(df3$Strain, levels=c("DH5α", "BL21", "C2566"))
+
+mycolor <- RColorBrewer::brewer.pal(5, 'Reds')
+mycolor2 <- mycolor[2:4]
+```
+
+``` {r}
+pro <- df3 %>% ggplot(aes(x=reorder(factor(Part), -mean), y=mean, fill=Strain)) + 
+  geom_bar(stat="identity", color="black", position=position_dodge(0.9), alpha=0.8,size=0.3) + 
+  geom_errorbar(
+    aes(ymin=mean, ymax=mean+sd),
+    width=.3,
+    size=.3,
+    position=position_dodge(0.9)) +  
+  theme_bw() +
+  scale_fill_brewer(palette = 'Reds', direction=-1) +
+  #scale_fill_manual(values = rev(mycolor2)) +
+  theme(axis.text.x=element_text(angle=45,size=34, family="NanumSquare", hjust = 1),
+        axis.text.y=element_text(size=34, family="NanumSquare"),
+        axis.title=element_text(size=44, family="NanumSquare"),
+        legend.title=element_text(size=338, family="NanumSquare"),
+        legend.text=element_text(size=34, family="NanumSquare"),
+        legend.position = 'right') +
+  ylab("Intensity (RFU)") + xlab("Promoter")
+
+pro
+ggsave("C://workspace//work//colony_scan//png//fig4//pro.png", pro, width = 10, height=4)
+```
+
+## Duplicate
+
+``` {r}
+df <- readxl::read_excel(path, sheet=1)
+
+df["Part"] <- apply(X=df["Part"],
+                    MARGIN = 1,
+                    FUN=function(i){
+                      Part_name(i, 1)
+                    })
+
+df$Intensity <- df$Gmean*df$Area/df$R_R/df$Rarea
+df <- df %>% subset(Strain == "DH5a")
+
+
+df3 <- df %>% group_by(Part, Date) %>% 
+  summarise(mean=mean(Intensity), sd=sd(Intensity), n=n()) %>% arrange(mean)
+df3 <- df3 %>% subset(Part != 'P8' & Part !='P13')
+df3$Date <- factor(df3$Date)
+
+mycolor <- RColorBrewer::brewer.pal(2, 'Reds')
+
+pro_dup <- df3 %>% ggplot(aes(x=reorder(factor(Part), -mean), y=mean, fill=Date)) + 
+  geom_bar(stat="identity", color="black", position=position_dodge(0.9), alpha=0.8) + 
+  geom_errorbar(
+    aes(ymin=mean, ymax=mean+sd),
+    width=.3,
+    size=.5,
+    position=position_dodge(0.9)) +  
+  theme_bw() +
+  scale_fill_brewer(palette='Reds', limits=c('Day1', 'Day2')) +
+  theme(axis.text.x=element_text(angle=45,size=34, family="NanumSquare", hjust = 1),
+        axis.text.y=element_text(size=34, family="NanumSquare"),
+        axis.title=element_text(size=44, family="NanumSquare"),
+        legend.title=element_text(size=38, family="NanumSquare"),
+        legend.text=element_text(size=34, family="NanumSquare"),
+        legend.position = 'right') +
+  ylab("Intensity (RFU)") + xlab("Promoter")
+
+pro_dup
+ggsave("C://workspace//work//colony_scan//png//fig4//pro_dup_legend.png", pro_dup, width = 10, height=4)
+```
+
+## RBS
+
+``` {r}
+path = "C:\\workspace\\work\\colony_scan\\Paper\\Figure\\RBS\\RBS.xlsx"
+
+df <- readxl::read_excel(path, sheet=1)
+df <- df %>% subset(count>20 & second >.65 & score > .4) %>% 
+  group_by(Part)
+
+Part_name <- function (x, x2) {
+  x = str_split_fixed(x, "_", 3)[,x2]
+}
+
+df["Part"] <- apply(X=df["Part"],
+                    MARGIN = 1,
+                    FUN=function(i){
+                      Part_name(i, 2)
+                    })
+
+df$Intensity <- df$Gmean*df$Area/df$R_R/df$Rarea
+
+df3 <- df %>% group_by(Part, Strain) %>% 
+  summarise(mean=mean(Intensity), sd=sd(Intensity), n=n()) %>% arrange(mean) 
+df3[df3$Strain == "DH5a",]$Strain <- "DH5α"
+df3$Strain <- factor(df3$Strain, levels=c("DH5α", "BL21", "C2566"))
+```
+
+
+``` {r}
+rbs <- df3 %>% ggplot(aes(x=reorder(factor(Part), -mean), y=mean, fill=Strain)) + 
+  geom_bar(stat="identity", color="black", position='dodge') + 
+  geom_errorbar(
+    aes(ymin=mean, ymax=mean+sd),
+    width=.3,
+    size=.5,
+    position=position_dodge(0.9)) +  
+  theme_bw() +
+  scale_fill_brewer(palette="Blues", direction = -1) + 
+  theme(axis.text.x=element_text(angle=45,size=34, family="NanumSquare", hjust = 1),
+        axis.text.y=element_text(size=34, family="NanumSquare"),
+        axis.title=element_text(size=44, family="NanumSquare"),
+        legend.title=element_text(size=38, family="NanumSquare"),
+        legend.text=element_text(size=34, family="NanumSquare"),
+        legend.position = 'right') +
+  ylab("Intensity (RFU)") + xlab("RBS")
+
+rbs
+
+ggsave("C://workspace//work//colony_scan//png//fig4//rbs.png", rbs, width = 10, height=4)
+```
