@@ -12,8 +12,6 @@ def main():
     parser.add_argument('-b', type=str, help="barcode fasta file", default = None)
     parser.add_argument('-o', type=str, default = None, help="")
     parser.add_argument('-t', type=str, choices = ['fasta','fastq'], help="file types", default = "fastq")
-    parser.add_argument('-p', type=float, help="Remove parameter")
-
     
     parser.add_argument('-s', action='store_true', help="Save background removed image files")
 
@@ -76,7 +74,7 @@ except:
         pass
     else:
         sys.exit("Break! tag folder is already in")
-    
+
 #----------
 summary = open(args.i + '\\summary.txt', 'w')
 summary.writelines('Barcode Path = ' + args.i + '\n')
